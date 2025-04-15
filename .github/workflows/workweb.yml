@@ -3,51 +3,37 @@ name: Deploy to Firebase Hosting
 on:
   push:
     branches:
-      - main # Trigger deployment on pushes to the main branch
+      - main
 
 jobs:
-  build-and-deploy:
-    name: Build and Deploy to Firebase Hosting
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        path: Web # Ensure the checkout path matches the structure of the repo
 
-      # Step 2: Cache dependencies (Optional, based on your project setup)
-      - name: Cache Node Modules
-        uses: actions/cache@v4.2.3
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18 # Ensure this matches the required Node.js version
 
-      # Step 3: Setup Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
+    - name: Install dependencies
+      run: npm install
+      working-directory: ./Web # Correct the working directory to where package.json is located
 
-      # Step 4: Install dependencies
-      - name: Install dependencies
-        run: npm install
+    - name: Build project
+      run: npm run build
+      working-directory: ./Web
 
-      # Step 5: Build the project (if applicable)
-      - name: Build Project
-        run: npm run build
-
-      # Step 6: Install Firebase CLI globally
-      - name: Install Firebase CLI
-        run: npm install -g firebase-tools
-
-      # Step 7: Authenticate with Firebase
-      - name: Authenticate with Firebase
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
-        run: firebase login:ci --no-localhost
-
-      # Step 8: Deploy to Firebase Hosting
-      - name: Deploy to Firebase Hosting
-        run: firebase deploy --only hosting
+    - name: Deploy to Firebase Hosting
+      uses: FirebaseExtended/action-hosting-deploy@v0
+      with:
+        repoToken: ${{ secrets.GITHUB_TOKEN }}
+        firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        channelId: live
+        projectId: norah-design-web
+      env:
+        CI: true
